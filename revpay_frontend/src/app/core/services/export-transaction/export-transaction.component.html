@@ -1,0 +1,96 @@
+<div class="export-panel">
+      <div class="export-header">
+        <h3 class="export-title">📄 Export Transactions</h3>
+        <p class="export-sub">Download your transaction history as PDF</p>
+      </div>
+
+      <div class="filter-row">
+        <div class="filter-group">
+          <label class="filter-label">From Date</label>
+          <input class="filter-input" type="date"
+            [(ngModel)]="fromDate"/>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">To Date</label>
+          <input class="filter-input" type="date"
+            [(ngModel)]="toDate"/>
+        </div>
+        <div class="filter-actions">
+          <button class="preview-btn"
+            [disabled]="loading()"
+            (click)="loadPreview()">
+            {{ loading() ? 'Loading...' : 'Preview' }}
+          </button>
+          <button class="export-btn"
+            [disabled]="!transactions().length || exporting()"
+            (click)="exportPDF()">
+            {{ exporting() ? 'Generating...' : '⬇ Export PDF' }}
+          </button>
+          <button class="clear-btn" (click)="clearFilter()">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="error-box">{{ error() }}</div>
+      }
+
+      @if (transactions().length) {
+        <div class="preview-section">
+          <div class="preview-meta">
+            <span>{{ transactions().length }} transactions found</span>
+            @if (fromDate || toDate) {
+              <span class="date-range">
+                {{ fromDate || 'All time' }} → {{ toDate || 'Today' }}
+              </span>
+            }
+            <span class="total-credit">
+              Credit: ${{ totalCredit() | number:'1.2-2' }}
+            </span>
+            <span class="total-debit">
+              Debit: ${{ totalDebit() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <div class="preview-table">
+            <div class="preview-head">
+              <span>Date</span>
+              <span>Reference</span>
+              <span>Description</span>
+              <span>Type</span>
+              <span>Amount</span>
+              <span>Status</span>
+            </div>
+            @for (tx of transactions().slice(0, 10); track tx.id) {
+              <div class="preview-row">
+                <span class="tx-date">
+                  {{ tx.createdAt | date:'dd MMM yy' }}
+                </span>
+                <span class="tx-ref">{{ tx.referenceNumber }}</span>
+                <span class="tx-desc">
+                  {{ tx.description || tx.type }}
+                </span>
+                <span class="tx-type">{{ shortType(tx.type) }}</span>
+                <span class="tx-amount"
+                  [class.credit]="tx.credit"
+                  [class.debit]="!tx.credit">
+                  {{ tx.credit ? '+' : '-' }}${{ tx.amount | number:'1.2-2' }}
+                </span>
+                <span class="tx-status">{{ tx.status }}</span>
+              </div>
+            }
+            @if (transactions().length > 10) {
+              <div class="preview-more">
+                ... and {{ transactions().length - 10 }} more
+                (all included in PDF export)
+              </div>
+            }
+          </div>
+        </div>
+      } @else if (previewed() && !loading()) {
+        <div class="empty-state">
+          No transactions found for the selected period
+        </div>
+      }
+    </div>

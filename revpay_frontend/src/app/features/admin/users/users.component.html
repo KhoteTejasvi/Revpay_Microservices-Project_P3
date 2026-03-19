@@ -1,0 +1,70 @@
+ <div class="page">
+      <div class="page-header">
+        <h1 class="page-title">Users</h1>
+        <p class="page-sub">{{ totalUsers() }} total users</p>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <span>User</span>
+          <span>Role</span>
+          <span>Account</span>
+          <span>Balance</span>
+          <span>Joined</span>
+          <span>Status</span>
+          <span>Action</span>
+        </div>
+
+      
+        @if (loading()) {
+          <div class="empty">Loading users...</div>
+        } @else if (!users().length) {
+          <div class="empty">No users found</div>
+        } @else {
+          @for (user of users(); track user.id) {
+            <div class="table-row">
+              <div class="user-info">
+                <p class="user-name">{{ user.fullName }}</p>
+                <p class="user-email">{{ user.email }}</p>
+              </div>
+              <span class="role-badge" [class]="'role-' + user.role.toLowerCase()">
+                {{ user.role }}
+              </span>
+              <span class="account-num">{{ user.accountNumber ?? '—' }}</span>
+              <span class="balance">
+                ${{ user.balance | number:'1.2-2' }}
+              </span>
+              <span class="date">{{ user.createdAt | date:'dd MMM yy' }}</span>
+              <span class="status-dot" [class]="user.enabled ? 'active' : 'inactive'">
+                {{ user.enabled ? 'Active' : 'Disabled' }}
+              </span>
+              <!-- <button class="toggle-btn"
+                [class]="user.enabled ? 'disable' : 'enable'"
+                [disabled]="togglingId() === user.id"
+                (click)="toggleUser(user.id)">
+                {{ togglingId() === user.id ? '...' : user.enabled ? 'Disable' : 'Enable' }}
+              </button> -->
+              @if (user.role !== 'ADMIN') {
+                <button class="toggle-btn"
+                  [class]="user.enabled ? 'disable' : 'enable'"
+                  [disabled]="togglingId() === user.id"
+                  (click)="toggleUser(user.id)">
+                  {{ togglingId() === user.id ? '...' : user.enabled ? 'Disable' : 'Enable' }}
+                </button>
+              } @else {
+                <span class="role-badge role-admin">Protected</span>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn" [disabled]="currentPage() === 0"
+          (click)="loadPage(currentPage() - 1)">← Prev</button>
+        <span class="page-info">Page {{ currentPage() + 1 }}</span>
+        <button class="page-btn" [disabled]="!hasNext()"
+          (click)="loadPage(currentPage() + 1)">Next →</button>
+      </div>
+    </div>

@@ -1,0 +1,150 @@
+<div class="page">
+  <div class="page-header">
+    <a routerLink="/business/invoices" class="back-btn">← Back</a>
+    <h1 class="page-title">Create Invoice</h1>
+    <p class="page-sub">Send a professional invoice to your client</p>
+  </div>
+
+  @if (success()) {
+    <div class="success-banner">
+      ✅ Invoice created successfully! Number: <strong>{{ invoiceNumber() }}</strong>
+    </div>
+  }
+  @if (error()) {
+    <div class="error-banner">⚠️ {{ error() }}</div>
+  }
+
+  <div class="two-col">
+
+    <!-- Left — Invoice Details -->
+    <div class="card">
+      <h3 class="card-title">Invoice Details</h3>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+        <div class="field">
+          <label>Recipient Email</label>
+          <input formControlName="recipientEmail" type="email"
+            placeholder="client@company.com"/>
+          @if (form.get('recipientEmail')?.invalid && form.get('recipientEmail')?.touched) {
+            <span class="field-error">Valid email required</span>
+          }
+        </div>
+
+        <div class="two-col-inner">
+          <div class="field">
+            <label>Issue Date</label>
+            <input formControlName="issueDate" type="date"/>
+          </div>
+          <div class="field">
+            <label>Due Date</label>
+            <input formControlName="dueDate" type="date"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tax Rate (%)</label>
+          <input formControlName="taxRate" type="number"
+            placeholder="0" min="0" max="100" step="0.5"/>
+        </div>
+
+        <div class="field">
+          <label>Notes <span class="optional">(optional)</span></label>
+          <input formControlName="notes" type="text"
+            placeholder="Payment terms, thank you note..."/>
+        </div>
+
+        <!-- Line Items -->
+        <div class="items-section">
+          <div class="items-header">
+            <span class="items-title">Line Items</span>
+            <button type="button" class="add-item-btn" (click)="addItem()">
+              + Add Item
+            </button>
+          </div>
+
+          <div class="items-head-row">
+            <span>Description</span>
+            <span>Qty</span>
+            <span>Unit Price</span>
+            <span>Total</span>
+            <span></span>
+          </div>
+
+          <!-- ✅ ADD THIS WRAPPER -->
+          <div formArrayName="items">
+            @for (item of items.controls; track $index) {
+              <div [formGroupName]="$index" class="item-row">
+                <input formControlName="description" type="text"
+                  placeholder="Service or product"/>
+                <input formControlName="quantity" type="number"
+                  placeholder="1" min="1"/>
+                <input formControlName="unitPrice" type="number"
+                  placeholder="0.00" step="0.01"/>
+                <span class="line-total">
+                  ${{ getLineTotal($index) | number:'1.2-2' }}
+                </span>
+                <button type="button" class="remove-btn"
+                  (click)="removeItem($index)">✕</button>
+              </div>
+            }
+          </div>
+          <!-- ✅ END WRAPPER -->
+
+        </div>
+
+        <!-- Totals -->
+        <div class="totals">
+          <div class="total-row">
+            <span>Subtotal</span>
+            <span>${{ subtotal() | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row">
+            <span>Tax ({{ form.get('taxRate')?.value ?? 0 }}%)</span>
+            <span>${{ taxAmount() | number:'1.2-2' }}</span>
+          </div>
+          <div class="total-row grand">
+            <span>Total</span>
+            <span>${{ grandTotal() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn"
+          [disabled]="form.invalid || loading()">
+          {{ loading() ? 'Creating...' : 'Create Invoice' }}
+        </button>
+
+      </form>
+    </div>
+
+    <!-- Right — Preview -->
+    <div class="preview-card">
+      <div class="preview-header">
+        <div class="preview-brand">RevPay</div>
+        <div>
+          <p class="preview-label">INVOICE</p>
+          <p class="preview-number">#INV-PREVIEW</p>
+        </div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-row">
+          <span class="preview-key">Bill To</span>
+          <span class="preview-val">
+            {{ form.get('recipientEmail')?.value || '—' }}
+          </span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-key">Due Date</span>
+          <span class="preview-val">
+            {{ form.get('dueDate')?.value || '—' }}
+          </span>
+        </div>
+        <div class="preview-divider"></div>
+        <div class="preview-total">
+          <span>Total Due</span>
+          <span class="preview-amount">${{ grandTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

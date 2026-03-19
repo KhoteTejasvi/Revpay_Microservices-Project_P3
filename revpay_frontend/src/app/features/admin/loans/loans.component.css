@@ -1,0 +1,111 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+    .page { font-family: 'Segoe UI', sans-serif; color: #e2e8f0; }
+    .page-header { margin-bottom: 1.5rem; }
+    .page-title { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; }
+    .page-sub { color: #64748b; font-size: 0.875rem; margin-top: 0.25rem; }
+
+    .filter-tabs { display: flex; gap: 0.5rem;
+      margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .tab-btn { background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #64748b; padding: 0.4rem 1rem; border-radius: 8px;
+      cursor: pointer; font-size: 0.82rem; transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.4rem; }
+    .tab-btn:hover { color: #94a3b8; }
+    .tab-btn.active { background: rgba(220,38,38,0.1);
+      border-color: rgba(220,38,38,0.3); color: #f87171; }
+    .badge { background: #ef4444; color: white; font-size: 0.68rem;
+      padding: 0.1rem 0.4rem; border-radius: 999px; font-weight: 700; }
+
+    .loan-list { display: flex; flex-direction: column; gap: 1rem; }
+
+    .loan-card { background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 1.5rem; transition: all 0.2s; }
+    .loan-card.applied { border-color: rgba(251,191,36,0.25);
+      background: rgba(251,191,36,0.03); }
+    .loan-card.active  { border-color: rgba(34,197,94,0.2);
+      background: rgba(34,197,94,0.03); }
+    .loan-card.rejected{ border-color: rgba(239,68,68,0.15); }
+
+    .loan-top { display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 1.25rem; }
+    .loan-number { color: #fbbf24; font-size: 0.9rem; font-weight: 600;
+      font-family: monospace; margin-bottom: 4px; }
+    .loan-borrower { color: #94a3b8; font-size: 0.875rem; font-weight: 500; }
+    .borrower-email { color: #64748b; font-size: 0.78rem;
+      display: block; margin-top: 2px; }
+
+    .status-badge { padding: 0.25rem 0.75rem; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+    .status-applied  { background: rgba(251,191,36,0.15); color: #fbbf24; }
+    .status-active   { background: rgba(34,197,94,0.15);  color: #4ade80; }
+    .status-rejected { background: rgba(239,68,68,0.15);  color: #f87171; }
+    .status-closed   { background: rgba(100,116,139,0.15);color: #94a3b8; }
+
+    .loan-details { display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem; margin-bottom: 1rem; }
+    .detail-label { color: #475569; font-size: 0.75rem;
+      display: block; margin-bottom: 3px; }
+    .detail-val { color: #94a3b8; font-size: 0.875rem;
+      font-weight: 500; display: block; }
+    .detail-val.principal { color: #f1f5f9; font-size: 1rem; font-weight: 700; }
+    .detail-val.total { color: #fbbf24; font-weight: 600; }
+
+    .loan-purpose { color: #64748b; font-size: 0.82rem;
+      margin-bottom: 1rem; font-style: italic; }
+
+    .repaid-bar { margin-bottom: 1rem; }
+    .repaid-info { display: flex; justify-content: space-between;
+      color: #64748b; font-size: 0.78rem; margin-bottom: 0.4rem; }
+    .progress-track { height: 6px; background: rgba(255,255,255,0.08);
+      border-radius: 999px; overflow: hidden; }
+    .progress-fill { height: 100%;
+      background: linear-gradient(90deg, #22c55e, #4ade80);
+      border-radius: 999px; transition: width 0.4s; }
+
+    .loan-actions { display: flex; gap: 0.75rem;
+      margin-top: 0.75rem; flex-wrap: wrap; }
+    .approve-btn { padding: 0.65rem 1.5rem;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white; border: none; border-radius: 10px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s; }
+    .approve-btn:hover:not(:disabled) { opacity: 0.9; }
+    .approve-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .reject-btn { padding: 0.65rem 1.5rem;
+      background: rgba(239,68,68,0.1); color: #f87171;
+      border: 1px solid rgba(239,68,68,0.25); border-radius: 10px;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .reject-btn:hover { background: rgba(239,68,68,0.15); }
+
+    .reject-form { margin-top: 1rem; padding: 1rem;
+      background: rgba(239,68,68,0.05);
+      border: 1px solid rgba(239,68,68,0.15);
+      border-radius: 12px; }
+    .reject-input { width: 100%; padding: 0.75rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: #e2e8f0;
+      font-size: 0.875rem; outline: none; }
+    .reject-input:focus { border-color: #ef4444; }
+    .field-error { color: #f87171; font-size: 0.75rem;
+      display: block; margin-top: 0.3rem; }
+    .reject-actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
+    .confirm-reject-btn { padding: 0.55rem 1.25rem;
+      background: #ef4444; color: white; border: none;
+      border-radius: 8px; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; }
+    .confirm-reject-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .cancel-btn { padding: 0.55rem 1.25rem;
+      background: rgba(255,255,255,0.05); color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; font-size: 0.875rem; cursor: pointer; }
+
+    .action-error { color: #f87171; font-size: 0.78rem; margin-top: 0.5rem; }
+
+    .empty { padding: 3rem; text-align: center; color: #475569;
+      background: rgba(255,255,255,0.02);
+      border: 1px dashed rgba(255,255,255,0.08); border-radius: 16px; }
+  

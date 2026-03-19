@@ -1,0 +1,146 @@
+<div class="page">
+   <div class="page">
+      <div class="page-header">
+        <a routerLink="/business/dashboard" class="back-btn">← Back</a>
+        <h1 class="page-title">Send Money</h1>
+        <p class="page-sub">Transfer funds to another RevPay user</p>
+      </div>
+    <div class="page-header">
+    <div>
+      <h1 class="page-title">My Loans</h1>
+      <p class="page-sub">Manage your business loans and EMI payments</p>
+    </div>
+    <a routerLink="/business/loans/apply" class="apply-btn">+ Apply for Loan</a>
+  </div>
+
+  @if (loading()) {
+    <div class="empty">Loading loans...</div>
+  } @else if (!loans().length) {
+    <div class="empty">
+      <p>No loans yet</p>
+      <a routerLink="/business/loans/apply" class="apply-link">
+        Apply for your first loan →
+      </a>
+    </div>
+  } @else {
+    <div class="loan-list">
+      @for (loan of loans(); track loan.id) {
+        <div class="loan-card"
+          [class.active]="loan.status === 'ACTIVE'"
+          [class.closed]="loan.status === 'CLOSED'">
+
+          <!-- Loan Header -->
+          <div class="loan-top">
+            <div>
+              <p class="loan-number">{{ loan.loanNumber }}</p>
+              <div class="loan-status-row">
+                <span class="status-badge"
+                  [class]="'s-' + loan.status.toLowerCase()">
+                  {{ loan.status }}
+                </span>
+                @if (loan.status === 'ACTIVE') {
+                  <span class="auto-debit-toggle"
+                    [class.enabled]="loan.autoDebit"
+                    (click)="toggleAutoDebit(loan)">
+                    {{ loan.autoDebit ? '🔄 Auto-debit ON' : '🔄 Auto-debit OFF' }}
+                  </span>
+                }
+              </div>
+            </div>
+            <div class="loan-amount-block">
+              <p class="loan-principal">
+                ${{ loan.principalAmount | number:'1.2-2' }}
+              </p>
+              <p class="loan-tenure">
+                {{ loan.tenureMonths }} months · {{ loan.interestRate }}% p.a.
+              </p>
+            </div>
+          </div>
+
+          <!-- Repayment Progress -->
+          @if (loan.status === 'ACTIVE' || loan.status === 'CLOSED') {
+            <div class="repay-section">
+              <div class="repay-labels">
+                <span>Repaid: ${{ loan.amountRepaid | number:'1.2-2' }}</span>
+                <span>Remaining: ${{ (loan.totalRepayableAmount - loan.amountRepaid) | number:'1.2-2' }}</span>
+                <span>{{ getProgress(loan) | number:'1.0-0' }}%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" [style.width.%]="getProgress(loan)"></div>
+              </div>
+              <div class="loan-emi-info">
+                Monthly EMI: <strong>${{ loan.monthlyEmiAmount | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+
+            <!-- EMI Schedule Toggle -->
+            <button class="view-schedule-btn" (click)="toggleSchedule(loan.id)">
+              {{ expandedLoanId() === loan.id ? '▲ Hide EMI Schedule' : '▼ View EMI Schedule' }}
+            </button>
+
+            @if (expandedLoanId() === loan.id) {
+              <div class="emi-schedule">
+                @if (loadingEmi()) {
+                  <p class="emi-loading">Loading schedule...</p>
+                } @else {
+                  <div class="emi-table-head">
+                    <span>#</span>
+                    <span>Due Date</span>
+                    <span>Principal</span>
+                    <span>Interest</span>
+                    <span>Fine</span>
+                    <span>Total Due</span>
+                    <span>Status</span>
+                    <span>Action</span>
+                  </div>
+                  @for (emi of emiSchedule(); track emi.id) {
+                    <div class="emi-row"
+                      [class.overdue]="emi.status === 'OVERDUE'"
+                      [class.paid]="emi.status === 'PAID'">
+                      <span class="emi-num">#{{ emi.instalmentNumber }}</span>
+                      <span class="emi-date">{{ emi.dueDate | date:'dd MMM yy' }}</span>
+                      <span class="emi-val">${{ emi.principalComponent | number:'1.2-2' }}</span>
+                      <span class="emi-val">${{ emi.interestComponent | number:'1.2-2' }}</span>
+                      <span class="emi-fine">
+                        {{ emi.fineAmount ? ('$' + (emi.fineAmount | number:'1.2-2')) : '—' }}
+                      </span>
+                      <span class="emi-total">${{ emi.totalDue | number:'1.2-2' }}</span>
+                      <span class="emi-badge" [class]="'eb-' + emi.status.toLowerCase()">
+                        {{ emi.status }}
+                      </span>
+                      <span>
+                        @if (emi.status !== 'PAID') {
+                          <button class="pay-emi-btn"
+                            [disabled]="payingEmiId() === emi.id"
+                            (click)="payEmi(emi.id, loan.id)">
+                            {{ payingEmiId() === emi.id ? '...' : 'Pay' }}
+                          </button>
+                        } @else {
+                          <span class="paid-on">{{ emi.paidDate | date:'dd MMM' }}</span>
+                        }
+                      </span>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          }
+
+          @if (loan.status === 'APPLIED') {
+            <div class="pending-approval">⏳ Pending admin approval</div>
+          }
+
+          @if (loan.status === 'REJECTED') {
+            <div class="rejected-note">
+              ❌ Loan rejected
+              @if (loan.purpose?.includes('Rejected:')) {
+                — {{ loan.purpose.split('Rejected:')[1] }}
+              }
+            </div>
+          }
+
+        </div>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,221 @@
+
+<div class="dash">
+
+  <!-- Top bar -->
+  <div class="dash-header">
+    <div>
+      <p class="dash-greeting">{{ greeting() }},
+        <span class="dash-name">{{ auth.currentUser()?.fullName }}</span>
+      </p>
+      <p class="dash-sub">{{ today() }} · Business Account</p>
+    </div>
+    <div class="dash-actions">
+      <a routerLink="/business/invoices/create" class="btn-primary">
+        + New Invoice
+      </a>
+      <a routerLink="/business/loans/apply" class="btn-secondary">
+        Apply for Loan
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-balance">
+      <div class="kpi-label">Total Balance</div>
+      <div class="kpi-value">${{ balance() | number:'1.2-2' }}</div>
+      <!-- <div class="kpi-sub">{{ dashData()?.accountNumber }}</div> -->
+        <div class="kpi-sub">{{ dashData()?.primaryAccount?.accountNumber }}</div>
+    </div>
+    <div class="kpi-card kpi-revenue">
+      <div class="kpi-label">Revenue Collected</div>
+      <div class="kpi-value green">
+        ${{ invoiceStats()?.totalRevenue | number:'1.2-2' }}
+      </div>
+      <div class="kpi-sub">
+        From {{ invoiceStats()?.paid ?? 0 }} paid invoices
+      </div>
+    </div>
+    <div class="kpi-card kpi-pending">
+      <div class="kpi-label">Pending Payment</div>
+      <div class="kpi-value yellow">
+        ${{ invoiceStats()?.pendingRevenue | number:'1.2-2' }}
+      </div>
+      <div class="kpi-sub">
+        {{ invoiceStats()?.sent ?? 0 }} invoices awaiting
+      </div>
+    </div>
+    <div class="kpi-card kpi-loan">
+      <div class="kpi-label">Active Loans</div>
+      <div class="kpi-value purple">{{ loanStats()?.active ?? 0 }}</div>
+      <div class="kpi-sub">
+        {{ loanStats()?.applied ?? 0 }} pending approval
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-row">
+
+    <!-- Invoice Donut -->
+    <div class="chart-card donut-card">
+      <span class="chart-title">Invoice Breakdown</span>
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" class="donut-svg">
+          @for (seg of donutSegments(); track $index) {
+            <circle class="donut-seg" cx="60" cy="60" r="45"
+              [attr.stroke]="seg.color"
+              [attr.stroke-dasharray]="seg.dash"
+              [attr.stroke-dashoffset]="seg.offset"
+              stroke-width="18" fill="none"/>
+          }
+          <text x="60" y="55" text-anchor="middle" class="donut-center-val">
+            {{ invoiceStats()?.total ?? 0 }}
+          </text>
+          <text x="60" y="70" text-anchor="middle" class="donut-center-label">
+            Total
+          </text>
+        </svg>
+      </div>
+      <div class="donut-legend">
+        @for (item of legendItems(); track item.label) {
+          <div class="legend-item">
+            <span class="legend-dot"
+              [style.background]="item.color"></span>
+            <span class="legend-label">{{ item.label }}</span>
+            <span class="legend-val">{{ item.value }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Revenue Bar Chart -->
+    <div class="chart-card bar-card">
+      <span class="chart-title">Revenue per Paid Invoice</span>
+      <div class="bar-chart">
+        @if (!paidInvoices().length) {
+          <div class="chart-empty">No paid invoices yet</div>
+        }
+        @for (inv of paidInvoices(); track inv.id) {
+          <div class="bar-row">
+            <div class="bar-label">{{ inv.invoiceNumber | slice:0:12 }}</div>
+            <div class="bar-track">
+              <div class="bar-fill"
+                [style.width.%]="getBarWidth(inv.totalAmount)">
+              </div>
+            </div>
+            <div class="bar-amount">
+              ${{ inv.totalAmount | number:'1.0-0' }}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Row -->
+  <div class="bottom-row">
+
+    <!-- Recent Invoices Table -->
+    <div class="table-card">
+      <div class="table-header-row">
+        <span class="chart-title">Recent Invoices</span>
+        <a routerLink="/business/invoices" class="see-all">View all →</a>
+      </div>
+      <div class="inv-table">
+        <div class="inv-table-head">
+          <span>Invoice</span>
+          <span>Client</span>
+          <span>Amount</span>
+          <span>Due</span>
+          <span>Status</span>
+        </div>
+        @if (!recentInvoices().length) {
+          <div class="chart-empty">No invoices yet</div>
+        }
+        @for (inv of recentInvoices(); track inv.id) {
+          <div class="inv-table-row">
+            <span class="inv-num">{{ inv.invoiceNumber }}</span>
+            <span class="inv-client">{{ inv.recipientEmail }}</span>
+            <span class="inv-amt">
+              ${{ inv.totalAmount | number:'1.2-2' }}
+            </span>
+            <span class="inv-due">{{ inv.dueDate | date:'dd MMM' }}</span>
+            <span class="inv-badge"
+              [class]="'b-' + inv.status.toLowerCase()">
+              {{ inv.status }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Right Col -->
+    <div class="right-col">
+
+      <!-- Active Loan -->
+      @if (activeLoan()) {
+        <div class="loan-card">
+          <div class="loan-card-header">
+            <span class="chart-title">Active Loan</span>
+            <span class="loan-num">{{ activeLoan()?.loanNumber }}</span>
+          </div>
+          <div class="loan-amount">
+            ${{ activeLoan()?.principalAmount | number:'1.2-2' }}
+            <span class="loan-tenure">
+              / {{ activeLoan()?.tenureMonths }}mo
+            </span>
+          </div>
+          <div class="loan-progress-wrap">
+            <div class="loan-progress-labels">
+              <span>
+                Repaid: ${{ activeLoan()?.amountRepaid | number:'1.2-2' }}
+              </span>
+              <span>{{ getLoanProgress() | number:'1.0-0' }}%</span>
+            </div>
+            <div class="loan-track">
+              <div class="loan-fill"
+                [style.width.%]="getLoanProgress()">
+              </div>
+            </div>
+          </div>
+          <div class="loan-emi">
+            Monthly EMI:
+            <strong>
+              ${{ activeLoan()?.monthlyEmiAmount | number:'1.2-2' }}
+            </strong>
+          </div>
+          <a routerLink="/business/loans" class="loan-view-btn">
+            View EMI Schedule →
+          </a>
+        </div>
+      } @else {
+        <div class="loan-card loan-empty">
+          <div class="loan-empty-icon">🏦</div>
+          <p>No active loans</p>
+          <a routerLink="/business/loans/apply" class="loan-apply-btn">
+            Apply for Loan
+          </a>
+        </div>
+      }
+
+      <!-- Quick Actions -->
+      <div class="qa-grid">
+        <a routerLink="/business/invoices/create" class="qa">
+          <span>📄</span> New Invoice
+        </a>
+        <a routerLink="/business/invoices" class="qa">
+          <span>📋</span> Invoices
+        </a>
+        <a routerLink="/business/top-up" class="qa">
+          <span>➕</span> Top Up
+        </a>
+        <a routerLink="/business/send" class="qa">
+          <span>💸</span> Send
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>

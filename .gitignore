@@ -1,0 +1,20 @@
+# Java / Spring Boot
+target/
+*.jar
+*.war
+*.class
+
+# Node / Angular
+node_modules/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Env
+.env

@@ -1,0 +1,159 @@
+server:
+  port: 8080    # ← Same port as your monolith — frontend URL unchanged!
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      # Global CORS — handles all preflight requests from Angular
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            exposedHeaders: "Authorization"
+            allowCredentials: true
+            maxAge: 3600
+
+      # Route definitions — requests are forwarded to services by name (Eureka)
+      routes:
+        # ── User Service ──────────────────────────────────────
+        - id: user-service-auth
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**
+
+        - id: user-service-users
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+
+        - id: user-service-admin-users
+          uri: lb://user-service
+          predicates:
+            - Path=/api/admin/users/**
+
+        - id: user-service-admin-stats
+          uri: lb://user-service
+          predicates:
+            - Path=/api/admin/stats
+
+        # ── Wallet Service ────────────────────────────────────
+        - id: wallet-service-accounts
+          uri: lb://wallet-service
+          predicates:
+            - Path=/api/accounts/**
+
+        - id: wallet-service-transactions
+          uri: lb://wallet-service
+          predicates:
+            - Path=/api/transactions/**
+
+        - id: wallet-service-payments
+          uri: lb://wallet-service
+          predicates:
+            - Path=/api/payments/**
+
+        # ── Invoice + Money Request Service ───────────────────
+        - id: invoice-service-invoices
+          uri: lb://invoice-service
+          predicates:
+            - Path=/api/invoices/**
+
+        - id: invoice-service-money-requests
+          uri: lb://invoice-service
+          predicates:
+            - Path=/api/money-requests/**
+
+        # ── Loan Service ──────────────────────────────────────
+        - id: loan-service-loans
+          uri: lb://loan-service
+          predicates:
+            - Path=/api/loans/**
+
+        - id: loan-service-emis
+          uri: lb://loan-service
+          predicates:
+            - Path=/api/emis/**
+
+        - id: loan-service-admin-loans
+          uri: lb://loan-service
+          predicates:
+            - Path=/api/admin/loans/**
+
+        - id: loan-service-admin-loan-stats
+          uri: lb://loan-service
+          predicates:
+            - Path=/api/admin/loans/stats
+
+        # ── Notification Service ──────────────────────────────
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+
+        # ── Dashboard (wallet-service handles it) ─────────────
+        - id: wallet-service-dashboard
+          uri: lb://wallet-service
+          predicates:
+            - Path=/api/dashboard
+
+        # ── Future Services ───────────────────────────
+        # - id: transaction-service ...
+        # - id: invoice-service ...
+        # - id: loan-service ...
+        # - id: notification-service ...
+
+        # ── Future Services (uncomment as you add them) ──
+        # - id: wallet-service
+        #   uri: lb://wallet-service
+        #   predicates:
+        #     - Path=/api/wallets/**, /api/payment-methods/**
+
+        # - id: transaction-service
+        #   uri: lb://transaction-service
+        #   predicates:
+        #     - Path=/api/transactions/**, /api/money-requests/**
+
+        # - id: invoice-service
+        #   uri: lb://invoice-service
+        #   predicates:
+        #     - Path=/api/invoices/**
+
+        # - id: loan-service
+        #   uri: lb://loan-service
+        #   predicates:
+        #     - Path=/api/loans/**, /api/emis/**
+
+        # - id: notification-service
+        #   uri: lb://notification-service
+        #   predicates:
+        #     - Path=/api/notifications/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://admin:admin123@localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

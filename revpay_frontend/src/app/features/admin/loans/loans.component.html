@@ -1,0 +1,151 @@
+<div class="page">
+      <div class="page-header">
+        <h1 class="page-title">Loan Management</h1>
+        <p class="page-sub">Review and approve loan applications</p>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        @for (tab of tabs; track tab) {
+          <button class="tab-btn"
+            [class.active]="activeTab() === tab"
+            (click)="loadLoans(tab)">
+            {{ tab }}
+            @if (tab === 'APPLIED' && pendingCount() > 0) {
+              <span class="badge">{{ pendingCount() }}</span>
+            }
+          </button>
+        }
+      </div>
+
+      @if (loading()) {
+        <div class="empty">Loading loans...</div>
+      } @else if (!loans().length) {
+        <div class="empty">No loans found</div>
+      } @else {
+        <div class="loan-list">
+          @for (loan of loans(); track loan.id) {
+            <div class="loan-card"
+              [class.applied]="loan.status === 'APPLIED'"
+              [class.active]="loan.status === 'ACTIVE'"
+              [class.rejected]="loan.status === 'REJECTED'">
+
+              <div class="loan-top">
+                <div>
+                  <p class="loan-number">{{ loan.loanNumber }}</p>
+                  <p class="loan-borrower">
+                    {{ loan.borrowerName }}
+                    <span class="borrower-email">{{ loan.borrowerEmail }}</span>
+                  </p>
+                </div>
+                <span class="status-badge"
+                  [class]="'status-' + loan.status.toLowerCase()">
+                  {{ loan.status }}
+                </span>
+              </div>
+
+              <div class="loan-details">
+                <div class="detail">
+                  <span class="detail-label">Principal</span>
+                  <span class="detail-val principal">
+                    ${{ loan.principalAmount | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Tenure</span>
+                  <span class="detail-val">{{ loan.tenureMonths }} months</span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Monthly EMI</span>
+                  <span class="detail-val">
+                    ${{ loan.monthlyEmiAmount | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Total Repayable</span>
+                  <span class="detail-val total">
+                    ${{ loan.totalRepayableAmount | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Interest Rate</span>
+                  <span class="detail-val">{{ loan.interestRate }}% p.a.</span>
+                </div>
+                <div class="detail">
+                  <span class="detail-label">Applied On</span>
+                  <span class="detail-val">
+                    {{ loan.createdAt | date:'dd MMM yyyy' }}
+                  </span>
+                </div>
+              </div>
+
+              @if (loan.purpose) {
+                <p class="loan-purpose">📋 Purpose: {{ loan.purpose }}</p>
+              }
+
+              @if (loan.status === 'ACTIVE') {
+                <div class="repaid-bar">
+                  <div class="repaid-info">
+                    <span>Repaid: ${{ loan.amountRepaid | number:'1.2-2' }}</span>
+                    <span>Remaining: ${{
+                      (loan.totalRepayableAmount - loan.amountRepaid)
+                      | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill"
+                      [style.width.%]="getProgress(loan)">
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- Admin Actions -->
+              @if (loan.status === 'APPLIED') {
+                <div class="loan-actions">
+                  <button class="approve-btn"
+                    [disabled]="actionId() === loan.id"
+                    (click)="approveLoan(loan.id)">
+                    {{ actionId() === loan.id ? '...' : '✅ Approve & Disburse' }}
+                  </button>
+                  <button class="reject-btn"
+                    (click)="openReject(loan.id)">
+                    ❌ Reject
+                  </button>
+                </div>
+
+                <!-- Reject form -->
+                @if (rejectingId() === loan.id) {
+                  <div class="reject-form">
+                    <form [formGroup]="rejectForm"
+                      (ngSubmit)="submitReject(loan.id)">
+                      <input formControlName="reason" type="text"
+                        class="reject-input"
+                        placeholder="Reason for rejection..."/>
+                      @if (rejectForm.get('reason')?.invalid &&
+                           rejectForm.get('reason')?.touched) {
+                        <span class="field-error">Reason required</span>
+                      }
+                      <div class="reject-actions">
+                        <button type="submit" class="confirm-reject-btn"
+                          [disabled]="rejectForm.invalid">
+                          Confirm Reject
+                        </button>
+                        <button type="button" class="cancel-btn"
+                          (click)="rejectingId.set(null)">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                }
+              }
+
+              @if (actionError() && actionId() === loan.id) {
+                <p class="action-error">⚠️ {{ actionError() }}</p>
+              }
+
+            </div>
+          }
+        </div>
+      }
+    </div>
