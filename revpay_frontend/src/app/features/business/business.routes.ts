@@ -73,11 +73,18 @@
 
 import { Routes } from '@angular/router';
 import { BusinessShellComponent } from './shell/shell.component';
+import { pinGuard } from '../../core/guards/pin-guard';
 
 export const BUSINESS_ROUTES: Routes = [
   {
+    path: 'set-pin',
+    loadComponent: () => import('../auth/set-pin/set-pin.component')
+      .then(m => m.SetPinComponent)
+  },
+  {
     path: '',
     component: BusinessShellComponent,
+    canActivate: [pinGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {

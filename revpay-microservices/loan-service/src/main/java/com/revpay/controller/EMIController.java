@@ -2,7 +2,9 @@ package com.revpay.controller;
 
 import com.revpay.common.ApiResponse;
 import com.revpay.dto.emi.EMIResponse;
+import com.revpay.dto.emi.PayEmiRequest;
 import com.revpay.service.EMIService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,9 +30,10 @@ public class EMIController {
     @PostMapping("/{emiId}/pay")
     public ResponseEntity<ApiResponse<EMIResponse>> payEmi(
             @PathVariable Long emiId,
+            @Valid @RequestBody PayEmiRequest req,
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(ApiResponse.ok("EMI paid",
-                emiService.payEmi(email, emiId)));
+                emiService.payEmi(email, emiId, req.getTransactionPin())));
     }
 
     @PostMapping("/loan/{loanId}/auto-debit/toggle")

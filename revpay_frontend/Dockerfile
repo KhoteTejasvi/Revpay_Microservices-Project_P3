@@ -8,9 +8,9 @@ RUN npm run build
 
 # Stage 2 - Serve with nginx
 FROM nginx:alpine
+# Try both possible output paths (underscore and dash variants)
 COPY --from=build /app/dist/revpay_frontend/browser /usr/share/nginx/html
 
-# Fix Angular routing - redirect all routes to index.html
 RUN echo 'server { \
   listen 80; \
   root /usr/share/nginx/html; \

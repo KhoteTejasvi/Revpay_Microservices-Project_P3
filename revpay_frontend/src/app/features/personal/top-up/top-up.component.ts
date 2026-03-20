@@ -1,17 +1,20 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../../core/services/dashboard.service';
 import { PaymentMethodResponse } from '../../../core/models/dashboard.models';
+import { PinModalComponent } from '../../../shared/components/pin-modal/pin-modal.component';
 
 @Component({
   selector: 'app-top-up',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PinModalComponent],
   templateUrl: './top-up.html',
   styleUrl: './top-up.css'
 })
 export class TopUpComponent implements OnInit {
+  @ViewChild('pinModal') pinModal!: PinModalComponent;
+
   private fb = inject(FormBuilder);
   private dashboardService = inject(DashboardService);
 
@@ -22,6 +25,7 @@ export class TopUpComponent implements OnInit {
   addingCard = signal(false);
   error = signal<string | null>(null);
   success = signal(false);
+  showPin = signal(false);
 
   quickAmounts = [10, 25, 50, 100, 200];
 
@@ -80,23 +84,36 @@ export class TopUpComponent implements OnInit {
 
   onTopUp() {
     if (this.topUpForm.invalid || this.selectedCard() === 0) return;
+    this.error.set(null);
+    this.showPin.set(true);
+  }
+
+  onPinConfirmed(pin: string) {
     this.loading.set(true);
     this.error.set(null);
     this.success.set(false);
 
     this.dashboardService.topUp({
       amount: this.topUpForm.value.amount!,
-      paymentMethodId: this.selectedCard()
+      paymentMethodId: this.selectedCard(),
+      transactionPin: pin
     }).subscribe({
       next: () => {
         this.loading.set(false);
+        this.showPin.set(false);
         this.success.set(true);
         this.topUpForm.reset({ amount: 0 });
         this.selectedCard.set(0);
+        this.pinModal.reset();
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message ?? 'Top-up failed');
+        const msg = err?.error?.message ?? 'Top-up failed';
+        this.pinModal.setError(msg);
+        if (!msg.toLowerCase().includes('pin')) {
+          this.showPin.set(false);
+          this.error.set(msg);
+        }
       }
     });
   }

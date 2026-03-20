@@ -33,12 +33,13 @@ export class DashboardService {
     amount: number;
     note?: string;
     description?: string;
+    transactionPin: string;
   }): Observable<any> {
     return this.http.post<ApiResponse<any>>(`${API}/transactions/transfer`, payload)
       .pipe(map(r => r.data));
   }
 
-  topUp(payload: { amount: number; paymentMethodId: number; description?: string }) {
+  topUp(payload: { amount: number; paymentMethodId: number; description?: string; transactionPin: string }) {
     return this.http.post<ApiResponse<TransactionResponse>>(
       `${API}/transactions/top-up`, payload
     ).pipe(map(r => r.data));
@@ -65,9 +66,9 @@ export class DashboardService {
     ).pipe(map(r => r.data));
   }
 
-  acceptRequest(id: number) {
+  acceptRequest(id: number, transactionPin: string) {
     return this.http.post<ApiResponse<MoneyRequestResponse>>(
-      `${API}/money-requests/${id}/accept`, {}
+      `${API}/money-requests/${id}/accept`, { transactionPin }
     ).pipe(map(r => r.data));
   }
 
@@ -119,8 +120,8 @@ export class DashboardService {
       .pipe(map(r => r.data));
   }
 
-  payInvoice(id: number): Observable<any> {
-    return this.http.post<ApiResponse<any>>(`${API}/invoices/${id}/pay`, {})
+  payInvoice(id: number, transactionPin: string): Observable<any> {
+    return this.http.post<ApiResponse<any>>(`${API}/invoices/${id}/pay`, { transactionPin })
       .pipe(map(r => r.data));
   }
 
@@ -159,8 +160,8 @@ export class DashboardService {
       .pipe(map(r => r.data));
   }
 
-  payEmi(emiId: number): Observable<any> {
-    return this.http.post<ApiResponse<any>>(`${API}/emis/${emiId}/pay`, {})
+  payEmi(emiId: number, transactionPin: string): Observable<any> {
+    return this.http.post<ApiResponse<any>>(`${API}/emis/${emiId}/pay`, { transactionPin })
       .pipe(map(r => r.data));
   }
 

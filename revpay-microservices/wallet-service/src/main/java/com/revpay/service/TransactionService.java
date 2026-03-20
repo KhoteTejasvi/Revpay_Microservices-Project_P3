@@ -1,6 +1,9 @@
 package com.revpay.service;
 
+import com.revpay.client.NotificationServiceClient;
+import com.revpay.client.UserServiceClient;
 import com.revpay.common.RevPayException;
+import com.revpay.dto.notification.CreateNotificationRequest;
 import com.revpay.dto.transaction.TopUpRequest;
 import com.revpay.dto.transaction.TransactionResponse;
 import com.revpay.dto.transaction.TransferRequest;
@@ -34,12 +37,15 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final PaymentMethodRepository paymentMethodRepository;
-    private final AccountService accountService;  // for auto-create logic
+    private final AccountService accountService;
+    private final UserServiceClient userServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     // ── Transfer ─────────────────────────────────────────────
 
     @Transactional
     public TransactionResponse transfer(String email, TransferRequest req) {
+        validatePin(email, req.getTransactionPin());
         Account senderAccount = accountService.getPrimaryAccount(email);
 
         // Find receiver account by their email
@@ -67,13 +73,36 @@ public class TransactionService {
                 req.getAmount(), TransactionType.TRANSFER,
                 req.getDescription(), req.getNote(), null
         );
-        return toResponse(transactionRepository.save(tx));
+        TransactionResponse saved = toResponse(transactionRepository.save(tx));
+
+        // Notify sender
+        try {
+            notificationServiceClient.createNotification(new CreateNotificationRequest(
+                    email, "TRANSACTION_ALERT",
+                    "Money Sent",
+                    "You sent $" + req.getAmount() + " to " + req.getReceiverEmail(),
+                    "/transactions", tx.getId()
+            ));
+        } catch (Exception e) { /* non-critical */ }
+
+        // Notify receiver
+        try {
+            notificationServiceClient.createNotification(new CreateNotificationRequest(
+                    req.getReceiverEmail(), "TRANSACTION_ALERT",
+                    "Money Received",
+                    "You received $" + req.getAmount() + " from " + email,
+                    "/transactions", tx.getId()
+            ));
+        } catch (Exception e) { /* non-critical */ }
+
+        return saved;
     }
 
     // ── Top Up ───────────────────────────────────────────────
 
     @Transactional
     public TransactionResponse topUp(String email, TopUpRequest req) {
+        validatePin(email, req.getTransactionPin());
         Account account = accountService.getPrimaryAccount(email);
 
         PaymentMethod pm = paymentMethodRepository
@@ -94,7 +123,19 @@ public class TransactionService {
         tx.setStatus(TransactionStatus.COMPLETED);
         tx.setCompletedAt(Instant.now());
 
-        return toResponse(transactionRepository.save(tx));
+        TransactionResponse saved = toResponse(transactionRepository.save(tx));
+
+        // Notify user of top-up
+        try {
+            notificationServiceClient.createNotification(new CreateNotificationRequest(
+                    email, "TRANSACTION_ALERT",
+                    "Wallet Topped Up",
+                    "Your wallet has been credited with $" + req.getAmount(),
+                    "/transactions", tx.getId()
+            ));
+        } catch (Exception e) { /* non-critical */ }
+
+        return saved;
     }
 
     // ── History ──────────────────────────────────────────────
@@ -172,6 +213,19 @@ public class TransactionService {
     private void validateSufficientBalance(Account account, BigDecimal amount) {
         if (account.getBalance().compareTo(amount) < 0) {
             throw RevPayException.badRequest("Insufficient balance");
+        }
+    }
+
+    private void validatePin(String email, String pin) {
+        if (pin == null || pin.isBlank()) {
+            throw RevPayException.badRequest("Transaction PIN is required");
+        }
+        try {
+            userServiceClient.verifyPin(email, java.util.Map.of("pin", pin));
+        } catch (feign.FeignException.BadRequest e) {
+            throw RevPayException.badRequest("Invalid transaction PIN");
+        } catch (feign.FeignException.Forbidden e) {
+            throw RevPayException.forbidden("Account locked due to too many wrong PIN attempts");
         }
     }
 

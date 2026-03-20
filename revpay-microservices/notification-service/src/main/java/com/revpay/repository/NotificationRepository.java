@@ -13,10 +13,10 @@ import org.springframework.stereotype.Repository;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
     Page<Notification> findByUserEmailOrderByCreatedAtDesc(String email, Pageable pageable);
-    long countByUserEmailAndIsRead(String email, boolean isRead);
+    long countByUserEmailAndRead(String email, boolean read);
 
     @Modifying
-    @Query("UPDATE Notification n SET n.isRead = true, n.readAt = CURRENT_TIMESTAMP " +
-            "WHERE n.userEmail = :email AND n.isRead = false")
+    @Query("UPDATE Notification n SET n.read = true, n.readAt = CURRENT_TIMESTAMP " +
+            "WHERE n.userEmail = :email AND n.read = false")
     void markAllAsRead(@Param("email") String email);
 }

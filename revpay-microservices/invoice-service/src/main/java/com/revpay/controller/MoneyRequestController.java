@@ -31,9 +31,11 @@ public class MoneyRequestController {
     @PostMapping("/{id}/accept")
     public ResponseEntity<ApiResponse<MoneyRequestResponse>> accept(
             @PathVariable Long id,
+            @RequestBody(required = false) java.util.Map<String, String> body,
             @AuthenticationPrincipal String email) {
+        String pin = body != null ? body.get("transactionPin") : null;
         return ResponseEntity.ok(ApiResponse.ok("Request accepted",
-                moneyRequestService.acceptRequest(email, id)));
+                moneyRequestService.acceptRequest(email, id, pin)));
     }
 
     @PostMapping("/{id}/reject")

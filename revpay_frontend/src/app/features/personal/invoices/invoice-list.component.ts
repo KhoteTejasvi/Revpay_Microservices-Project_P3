@@ -1,13 +1,14 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DashboardService } from '../../../core/services/dashboard.service';
+import { PinModalComponent } from '../../../shared/components/pin-modal/pin-modal.component';
 
 @Component({
   selector: 'app-personal-invoice-list',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, RouterLink, ReactiveFormsModule],
+  imports: [DecimalPipe, DatePipe, RouterLink, ReactiveFormsModule, PinModalComponent],
   template: `
     <div class="page">
       <a routerLink="/personal/dashboard" class="back-btn">← Back</a>
@@ -139,6 +140,13 @@ import { DashboardService } from '../../../core/services/dashboard.service';
         </div>
       }
     </div>
+
+    <app-pin-modal
+      #pinModal
+      [visible]="showPin()"
+      (confirmed)="onPinConfirmed($event)"
+      (cancelled)="showPin.set(false)">
+    </app-pin-modal>
   `,
   styles: [`
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -266,6 +274,10 @@ export class PersonalInvoiceListComponent implements OnInit {
   actionId = signal<number | null>(null);
   actionError = signal<string | null>(null);
   disputingId = signal<number | null>(null);
+  showPin = signal(false);
+  pendingInvoiceId = signal<number | null>(null);
+
+  @ViewChild('pinModal') pinModal!: PinModalComponent;
 
   disputeForm = this.fb.group({
     reason: ['', [Validators.required, Validators.minLength(5)]]
@@ -285,16 +297,31 @@ export class PersonalInvoiceListComponent implements OnInit {
   }
 
   payInvoice(id: number) {
-    this.actionId.set(id);
+    this.pendingInvoiceId.set(id);
     this.actionError.set(null);
-    this.dashboardService.payInvoice(id).subscribe({
+    this.showPin.set(true);
+  }
+
+  onPinConfirmed(pin: string) {
+    const id = this.pendingInvoiceId();
+    if (!id) return;
+    this.actionId.set(id);
+    this.dashboardService.payInvoice(id, pin).subscribe({
       next: () => {
         this.actionId.set(null);
+        this.showPin.set(false);
+        this.pendingInvoiceId.set(null);
+        this.pinModal.reset();
         this.load();
       },
       error: (err) => {
         this.actionId.set(null);
-        this.actionError.set(err?.error?.message ?? 'Payment failed');
+        const msg = err?.error?.message ?? 'Payment failed';
+        this.pinModal.setError(msg);
+        if (!msg.toLowerCase().includes('pin')) {
+          this.showPin.set(false);
+          this.actionError.set(msg);
+        }
       }
     });
   }

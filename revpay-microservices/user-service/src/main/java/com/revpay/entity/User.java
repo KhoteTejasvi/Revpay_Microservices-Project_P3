@@ -65,6 +65,18 @@ public class User {
     @Column(name = "reset_token_expiry")
     private Instant resetTokenExpiry;
 
+    @Column(name = "transaction_pin")
+    private String transactionPin;
+
+    @Column(name = "is_pin_set", nullable = false)
+    private boolean pinSet = false;
+
+    @Column(name = "pin_attempts", nullable = false)
+    private int pinAttempts = 0;
+
+    @Column(name = "pin_length", nullable = false)
+    private int pinLength = 0;
+
     // ── No-args constructor (required by JPA) ──────────────────────────
     public User() {}
 
@@ -154,4 +166,12 @@ public class User {
     public void setResetToken(String v)          { this.resetToken = v; }
     public Instant getResetTokenExpiry()         { return resetTokenExpiry; }
     public void setResetTokenExpiry(Instant v)   { this.resetTokenExpiry = v; }
+    public String getTransactionPin()            { return transactionPin; }
+    public void setTransactionPin(String v)      { this.transactionPin = v; }
+    public boolean isPinSet()                    { return pinSet; }
+    public void setPinSet(boolean v)             { this.pinSet = v; }
+    public int getPinAttempts()                  { return pinAttempts; }
+    public void setPinAttempts(int v)            { this.pinAttempts = v; }
+    public int getPinLength()                    { return pinLength; }
+    public void setPinLength(int v)              { this.pinLength = v; }
 }

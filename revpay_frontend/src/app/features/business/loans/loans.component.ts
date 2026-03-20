@@ -1,16 +1,19 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, ViewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { DashboardService } from '../../../core/services/dashboard.service';
+import { PinModalComponent } from '../../../shared/components/pin-modal/pin-modal.component';
 
 @Component({
   selector: 'app-business-loans',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, DatePipe],
+  imports: [RouterLink, DecimalPipe, DatePipe, PinModalComponent],
   templateUrl: `./loans.component.html`,
   styleUrl: `./loans.component.css`
 })
 export class BusinessLoansComponent implements OnInit {
+  @ViewChild('pinModal') pinModal!: PinModalComponent;
+
   private dashboardService = inject(DashboardService);
 
   loans = signal<any[]>([]);
@@ -19,6 +22,9 @@ export class BusinessLoansComponent implements OnInit {
   emiSchedule = signal<any[]>([]);
   loadingEmi = signal(false);
   payingEmiId = signal<number | null>(null);
+  showPin = signal(false);
+  pendingEmiId = signal<number | null>(null);
+  pendingLoanId = signal<number | null>(null);
 
   ngOnInit() { this.load(); }
 
@@ -50,12 +56,22 @@ export class BusinessLoansComponent implements OnInit {
   }
 
   payEmi(emiId: number, loanId: number) {
+    this.pendingEmiId.set(emiId);
+    this.pendingLoanId.set(loanId);
+    this.showPin.set(true);
+  }
+
+  onPinConfirmed(pin: string) {
+    const emiId = this.pendingEmiId();
+    const loanId = this.pendingLoanId();
+    if (!emiId || !loanId) return;
     this.payingEmiId.set(emiId);
-    this.dashboardService.payEmi(emiId).subscribe({
+    this.dashboardService.payEmi(emiId, pin).subscribe({
       next: () => {
         this.payingEmiId.set(null);
+        this.showPin.set(false);
+        this.pinModal.reset();
         this.load();
-        // Reload EMI schedule
         this.loadingEmi.set(true);
         this.dashboardService.getEmiSchedule(loanId).subscribe({
           next: (emis: any[]) => {
@@ -64,9 +80,13 @@ export class BusinessLoansComponent implements OnInit {
           }
         });
       },
-      error: (err: { error: { message: any; }; }) => {
+      error: (err: any) => {
         this.payingEmiId.set(null);
-        alert(err?.error?.message ?? 'Payment failed');
+        const msg = err?.error?.message ?? 'Payment failed';
+        this.pinModal.setError(msg);
+        if (!msg.toLowerCase().includes('pin')) {
+          this.showPin.set(false);
+        }
       }
     });
   }

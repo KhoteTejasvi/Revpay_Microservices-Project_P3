@@ -46,7 +46,7 @@ public class NotificationService {
 
     @Transactional(readOnly = true)
     public long getUnreadCount(String email) {
-        return notificationRepository.countByUserEmailAndIsRead(email, false);
+        return notificationRepository.countByUserEmailAndRead(email, false);
     }
 
     @Transactional

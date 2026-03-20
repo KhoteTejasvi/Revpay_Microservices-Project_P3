@@ -1,10 +1,17 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './shell/shell.component';
+import { pinGuard } from '../../core/guards/pin-guard';
 
 export const PERSONAL_ROUTES: Routes = [
   {
+    path: 'set-pin',
+    loadComponent: () => import('../auth/set-pin/set-pin.component')
+      .then(m => m.SetPinComponent)
+  },
+  {
     path: '',
     component: ShellComponent,
+    canActivate: [pinGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {

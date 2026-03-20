@@ -41,9 +41,11 @@ public class InvoiceController {
     @PostMapping("/{id}/pay")
     public ResponseEntity<ApiResponse<InvoiceResponse>> pay(
             @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body,
             @AuthenticationPrincipal String email) {
+        String pin = body != null ? body.get("transactionPin") : null;
         return ResponseEntity.ok(ApiResponse.ok("Invoice paid",
-                invoiceService.payInvoice(email, id)));
+                invoiceService.payInvoice(email, id, pin)));
     }
 
     @GetMapping("/issued")

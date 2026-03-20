@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap, catchError, throwError, Observable } from 'rxjs';
+import { tap, catchError, throwError, Observable, switchMap, of } from 'rxjs';
 import {
   AuthResponse, AuthUser, ApiResponse,
   LoginRequest, RegisterPersonalRequest, RegisterBusinessRequest, Role
@@ -87,20 +87,36 @@ export class AuthService {
   // ── Private ──────────────────────────────────────────────
   private handleAuthSuccess(data: AuthResponse) {
     localStorage.setItem(TOKEN_KEY, data.token);
-if (data.refreshToken) {
-    localStorage.setItem(REFRESH_KEY, data.refreshToken);
-  }
-     const user: AuthUser = {
-    fullName: data.fullName,
-    email: data.email,
-    role: data.role,
-    primaryAccountId: data.accountId   // backend sends "accountId"
-  };
-
+    if (data.refreshToken) {
+      localStorage.setItem(REFRESH_KEY, data.refreshToken);
+    }
+    const user: AuthUser = {
+      fullName: data.fullName,
+      email: data.email,
+      role: data.role,
+      primaryAccountId: data.accountId
+    };
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this._currentUser.set(user);
     this._isLoading.set(false);
-    this.redirectByRole(data.role);
+
+    // Admin skips PIN check
+    if (data.role === 'ADMIN') {
+      this.redirectByRole(data.role);
+      return;
+    }
+
+    // Check PIN status before redirecting
+    this.http.get<ApiResponse<{ pinSet: boolean }>>(`${API_BASE}/users/pin-status`).pipe(
+      catchError(() => of({ data: { pinSet: true } } as ApiResponse<{ pinSet: boolean }>))
+    ).subscribe(res => {
+      if (!res.data.pinSet) {
+        const setPinRoute = data.role === 'BUSINESS' ? '/business/set-pin' : '/personal/set-pin';
+        this.router.navigate([setPinRoute]);
+      } else {
+        this.redirectByRole(data.role);
+      }
+    });
   }
 
   private handleError(err: any) {

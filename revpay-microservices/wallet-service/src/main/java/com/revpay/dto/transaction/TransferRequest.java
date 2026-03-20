@@ -19,6 +19,9 @@ public class TransferRequest {
     private String note;
     private String description;
 
+    @NotBlank(message = "Transaction PIN is required")
+    private String transactionPin;
+
     public String getReceiverEmail() { return receiverEmail; }
     public void setReceiverEmail(String receiverEmail) { this.receiverEmail = receiverEmail; }
 
@@ -30,4 +33,7 @@ public class TransferRequest {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getTransactionPin() { return transactionPin; }
+    public void setTransactionPin(String transactionPin) { this.transactionPin = transactionPin; }
 }

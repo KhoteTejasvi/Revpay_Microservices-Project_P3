@@ -1,10 +1,12 @@
 package com.revpay.service;
 
+import com.revpay.client.NotificationServiceClient;
 import com.revpay.client.UserServiceClient;
 import com.revpay.client.WalletServiceClient;
 import com.revpay.common.RevPayException;
 import com.revpay.dto.moneyrequest.MoneyRequestDto;
 import com.revpay.dto.moneyrequest.MoneyRequestResponse;
+import com.revpay.dto.notification.CreateNotificationRequest;
 import com.revpay.dto.transaction.TransactionResponse;
 import com.revpay.dto.user.UserAccountInfo;
 import com.revpay.dto.wallet.InternalTransferRequest;
@@ -27,10 +29,10 @@ public class MoneyRequestService {
     private final MoneyRequestRepository moneyRequestRepository;
     private final UserServiceClient userServiceClient;
     private final WalletServiceClient walletServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     @Transactional
     public MoneyRequestResponse sendRequest(String email, MoneyRequestDto dto) {
-        // Validate both users exist
         userServiceClient.getAccountInfo(email);
         userServiceClient.getAccountInfo(dto.getPayerIdentifier());
 
@@ -47,11 +49,39 @@ public class MoneyRequestService {
         request.setStatus(MoneyRequestStatus.PENDING);
         request.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
 
-        return toResponse(moneyRequestRepository.save(request));
+        MoneyRequest saved = moneyRequestRepository.save(request);
+
+        // Notify the payer
+        try {
+            String requesterName = userServiceClient.getAccountInfo(email).getFullName();
+            notificationServiceClient.createNotification(new CreateNotificationRequest(
+                    dto.getPayerIdentifier(),
+                    "MONEY_REQUEST",
+                    "Money Request Received",
+                    requesterName + " is requesting $" + dto.getAmount()
+                            + (dto.getMessage() != null ? " — " + dto.getMessage() : ""),
+                    "/request",
+                    saved.getId()
+            ));
+        } catch (Exception e) { /* non-critical */ }
+
+        return toResponse(saved);
     }
 
     @Transactional
-    public MoneyRequestResponse acceptRequest(String email, Long requestId) {
+    public MoneyRequestResponse acceptRequest(String email, Long requestId, String transactionPin) {
+        // Validate PIN
+        if (transactionPin == null || transactionPin.isBlank()) {
+            throw RevPayException.badRequest("Transaction PIN is required");
+        }
+        try {
+            userServiceClient.verifyPin(email, java.util.Map.of("pin", transactionPin));
+        } catch (feign.FeignException.BadRequest e) {
+            throw RevPayException.badRequest("Invalid transaction PIN");
+        } catch (feign.FeignException.Forbidden e) {
+            throw RevPayException.forbidden("Account locked due to too many wrong PIN attempts");
+        }
+
         MoneyRequest request = getRequest(requestId);
 
         if (!request.getPayerEmail().equalsIgnoreCase(email)) {
@@ -61,7 +91,6 @@ public class MoneyRequestService {
             throw RevPayException.badRequest("Request is no longer pending");
         }
 
-        // Call wallet-service to transfer funds
         InternalTransferRequest transferReq = new InternalTransferRequest();
         transferReq.setSenderEmail(email);
         transferReq.setReceiverEmail(request.getRequesterEmail());
@@ -102,14 +131,10 @@ public class MoneyRequestService {
                 .map(this::toResponse);
     }
 
-    // ── Internal endpoint used by wallet-service dashboard ───
-
     public long countPendingForPayer(String email) {
         return moneyRequestRepository.countByPayerEmailAndStatus(
                 email, MoneyRequestStatus.PENDING);
     }
-
-    // ── Helpers ──────────────────────────────────────────────
 
     private MoneyRequest getRequest(Long id) {
         return moneyRequestRepository.findById(id)

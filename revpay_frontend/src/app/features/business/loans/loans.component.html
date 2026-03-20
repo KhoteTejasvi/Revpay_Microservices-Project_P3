@@ -144,3 +144,10 @@
     </div>
   }
 </div>
+
+<app-pin-modal
+  #pinModal
+  [visible]="showPin()"
+  (confirmed)="onPinConfirmed($event)"
+  (cancelled)="showPin.set(false)">
+</app-pin-modal>

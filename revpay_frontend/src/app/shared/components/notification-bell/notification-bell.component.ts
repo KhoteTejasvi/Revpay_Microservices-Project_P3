@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { NotificationService, NotificationItem } from '../../../core/services/notification.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-notification-bell',
@@ -197,22 +198,29 @@ import { NotificationService, NotificationItem } from '../../../core/services/no
     }
   `]
 })
-export class NotificationBellComponent implements OnInit {
+export class NotificationBellComponent implements OnInit, OnDestroy {
   notifService = inject(NotificationService);
+  private authService = inject(AuthService);
   private router = inject(Router);
+  private intervalId: any;
 
   open = signal(false);
   loading = signal(false);
   items = signal<NotificationItem[]>([]);
 
   ngOnInit() {
-    // Load unread count on component init
-    this.notifService.loadUnreadCount();
-
-    // Refresh count every 30 seconds
-    setInterval(() => {
+    if (this.authService.isAuthenticated()) {
       this.notifService.loadUnreadCount();
-    }, 30000);
+      this.intervalId = setInterval(() => {
+        if (this.authService.isAuthenticated()) {
+          this.notifService.loadUnreadCount();
+        }
+      }, 30000);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.intervalId) clearInterval(this.intervalId);
   }
 
   toggle() {

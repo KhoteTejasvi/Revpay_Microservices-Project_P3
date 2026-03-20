@@ -1,5 +1,6 @@
 package com.revpay.service;
 
+import com.revpay.client.UserServiceClient;
 import com.revpay.client.WalletServiceClient;
 import com.revpay.common.RevPayException;
 import com.revpay.dto.emi.EMIResponse;
@@ -28,6 +29,7 @@ public class EMIService {
     private final LoanRepository loanRepository;
     private final WalletServiceClient walletServiceClient;
     private final LoanService loanService;
+    private final UserServiceClient userServiceClient;
 
     private static final BigDecimal FINE_RATE = new BigDecimal("0.02");
 
@@ -45,7 +47,10 @@ public class EMIService {
     // ── Manual EMI payment ───────────────────────────────────
 
     @Transactional
-    public EMIResponse payEmi(String email, Long emiId) {
+    public EMIResponse payEmi(String email, Long emiId, String transactionPin) {
+        // Validate PIN first
+        validatePin(email, transactionPin);
+
         EMI emi = emiRepository.findById(emiId)
                 .orElseThrow(() -> RevPayException.notFound("EMI not found"));
 
@@ -123,7 +128,7 @@ public class EMIService {
         List<EMI> dueEmis = emiRepository.findDueForAutoDebit(LocalDate.now());
         for (EMI emi : dueEmis) {
             try {
-                payEmi(emi.getLoan().getBorrowerEmail(), emi.getId());
+                payEmi(emi.getLoan().getBorrowerEmail(), emi.getId(), null);
             } catch (Exception e) {
                 System.err.println("Auto-debit failed for EMI "
                         + emi.getId() + ": " + e.getMessage());
@@ -136,6 +141,17 @@ public class EMIService {
     private Loan getLoan(Long id) {
         return loanRepository.findById(id)
                 .orElseThrow(() -> RevPayException.notFound("Loan not found"));
+    }
+
+    private void validatePin(String email, String pin) {
+        if (pin == null || pin.isBlank()) return; // skip for auto-debit
+        try {
+            userServiceClient.verifyPin(email, java.util.Map.of("pin", pin));
+        } catch (feign.FeignException.BadRequest e) {
+            throw RevPayException.badRequest("Invalid transaction PIN");
+        } catch (feign.FeignException.Forbidden e) {
+            throw RevPayException.forbidden("Account locked due to too many wrong PIN attempts");
+        }
     }
 
     public EMIResponse toResponse(EMI emi) {

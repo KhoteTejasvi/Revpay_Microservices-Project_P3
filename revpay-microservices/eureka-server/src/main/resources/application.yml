@@ -1,4 +1,4 @@
-admin admin12aserver:
+server:
   port: 8761
 
 spring:

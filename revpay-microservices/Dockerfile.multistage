@@ -1,0 +1,37 @@
+# Stage 1 - Build entire Maven project
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+
+# Copy root pom first
+COPY pom.xml .
+
+# Copy all service poms
+COPY eureka-server/pom.xml eureka-server/
+COPY api-gateway/pom.xml api-gateway/
+COPY user-service/pom.xml user-service/
+COPY wallet-service/pom.xml wallet-service/
+COPY invoice-service/pom.xml invoice-service/
+COPY loan-service/pom.xml loan-service/
+COPY notification-service/pom.xml notification-service/
+
+# Download dependencies (cached layer)
+RUN mvn dependency:go-offline -B
+
+# Copy all source code
+COPY eureka-server/src eureka-server/src
+COPY api-gateway/src api-gateway/src
+COPY user-service/src user-service/src
+COPY wallet-service/src wallet-service/src
+COPY invoice-service/src invoice-service/src
+COPY loan-service/src loan-service/src
+COPY notification-service/src notification-service/src
+
+# Build everything
+RUN mvn clean package -DskipTests -B
+
+# Stage 2 - Runtime image
+FROM eclipse-temurin:17-jre-alpine
+ARG SERVICE_NAME
+WORKDIR /app
+COPY --from=build /app/${SERVICE_NAME}/target/*.jar app.jar
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

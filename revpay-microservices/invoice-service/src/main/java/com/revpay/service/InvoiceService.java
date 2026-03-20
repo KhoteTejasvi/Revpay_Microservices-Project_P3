@@ -4,6 +4,7 @@ import com.revpay.client.NotificationServiceClient;
 import com.revpay.client.UserServiceClient;
 import com.revpay.client.WalletServiceClient;
 import com.revpay.common.RevPayException;
+import feign.FeignException;
 import com.revpay.dto.invoice.*;
 import com.revpay.dto.user.UserAccountInfo;
 import com.revpay.dto.wallet.InternalTransferRequest;
@@ -113,7 +114,19 @@ public class InvoiceService {
     }
 
     @Transactional
-    public InvoiceResponse payInvoice(String email, Long invoiceId) {
+    public InvoiceResponse payInvoice(String email, Long invoiceId, String transactionPin) {
+        // Validate PIN
+        if (transactionPin == null || transactionPin.isBlank()) {
+            throw RevPayException.badRequest("Transaction PIN is required");
+        }
+        try {
+            userServiceClient.verifyPin(email, java.util.Map.of("pin", transactionPin));
+        } catch (feign.FeignException.BadRequest e) {
+            throw RevPayException.badRequest("Invalid transaction PIN");
+        } catch (feign.FeignException.Forbidden e) {
+            throw RevPayException.forbidden("Account locked due to too many wrong PIN attempts");
+        }
+
         Invoice invoice = getInvoice(invoiceId);
 
         if (!invoice.getRecipientEmail().equalsIgnoreCase(email)) {

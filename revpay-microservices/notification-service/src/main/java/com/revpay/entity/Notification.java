@@ -9,7 +9,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "notifications", indexes = {
-        @Index(name = "idx_notif_email_read", columnList = "user_email, isRead")
+        @Index(name = "idx_notif_email_read", columnList = "user_email, is_read")
 })
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Notification {
@@ -28,9 +28,9 @@ public class Notification {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String body;
 
-    @Column(nullable = false)
+    @Column(name = "is_read", nullable = false)
     @Builder.Default
-    private boolean isRead = false;
+    private boolean read = false;
 
     private String actionUrl;
     private Long referenceId;
